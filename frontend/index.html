@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VitaJuice by Rena - Sistema de Gestión Comercial (MVP)</title>
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f2f9f1',
+              100: '#e1f2df',
+              500: '#2e7d32',
+              600: '#236526',
+              700: '#1b4d1d',
+              accent: '#f59e0b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Culqi Checkout v4 Script -->
+  <script src="https://checkout.culqi.com/js/v4"></script>
+
+  <!-- Supabase JS Client via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Estilos personalizados -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans flex min-h-screen">
+
+  <!-- ========================================================================= -->
+  <!-- 1. PANTALLA DE LOGIN (MODAL / OVERLAY) -->
+  <!-- ========================================================================= -->
+  <div id="login-overlay" class="fixed inset-0 z-50 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 border border-slate-100">
+      <div class="text-center mb-8">
+        <div class="w-14 h-14 bg-gradient-to-tr from-emerald-600 to-green-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-emerald-600/30 mb-4 text-white">
+          <i data-lucide="sparkles" class="w-8 h-8"></i>
+        </div>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">VitaJuice by Rena</h1>
+        <p class="text-xs text-slate-500 mt-1">Sistema de Gestión Comercial e Inventario (MVP)</p>
+      </div>
+
+      <div id="login-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium"></div>
+
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">Correo Electrónico</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-3 text-slate-400"><i data-lucide="mail" class="w-4 h-4"></i></span>
+            <input type="email" id="login-email" required placeholder="admin@vitajuice.pe" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">Contraseña</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-3 text-slate-400"><i data-lucide="lock" class="w-4 h-4"></i></span>
+            <input type="password" id="login-password" required placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" />
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all">
+          <span>Ingresar al Sistema</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </form>
+
+      <div class="mt-8 pt-6 border-t border-slate-100">
+        <button type="button" id="btn-demo-credentials" class="w-full py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors">
+          <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+          Llenar Credenciales Demo (Admin)
+        </button>
+        <p class="text-center text-[11px] text-slate-400 mt-2">ISIL • Proyecto Tecnológico • Metodología Scrum</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 2. BARRA LATERAL (SIDEBAR) -->
+  <!-- ========================================================================= -->
+  <aside class="w-64 bg-slate-900 text-white min-h-screen flex flex-col border-r border-slate-800 select-none shrink-0 no-print">
+    <!-- Brand Header -->
+    <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-green-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-green-900/30 text-white">
+        <i data-lucide="sparkles" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-lg leading-tight tracking-tight">VitaJuice</h1>
+        <p class="text-xs text-emerald-400 font-medium tracking-wide uppercase">by Rena • Gestión</p>
+      </div>
+    </div>
+
+    <!-- Navegación -->
+    <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
+      <button data-view="dashboard" class="nav-btn active w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800/80 hover:text-white">
+        <div class="flex items-center gap-3">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span>Dashboard</span>
+        </div>
+      </button>
+
+      <button data-view="orders" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800/80 hover:text-white">
+        <div class="flex items-center gap-3">
+          <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+          <span>Ventas & Pedidos</span>
+        </div>
+      </button>
+
+      <button data-view="inventory" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800/80 hover:text-white">
+        <div class="flex items-center gap-3">
+          <i data-lucide="boxes" class="w-4 h-4"></i>
+          <span>Inventario & Compras</span>
+        </div>
+      </button>
+
+      <button data-view="recipes" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800/80 hover:text-white">
+        <div class="flex items-center gap-3">
+          <i data-lucide="scroll-text" class="w-4 h-4"></i>
+          <span>Fichas Técnicas</span>
+        </div>
+      </button>
+
+      <button data-view="alerts" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800/80 hover:text-white">
+        <div class="flex items-center gap-3">
+          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+          <span>Bandeja de Alertas</span>
+        </div>
+        <span id="sidebar-alert-badge" class="hidden px-2 py-0.5 text-xs font-bold bg-amber-500 text-slate-950 rounded-full animate-pulse">0</span>
+      </button>
+
+      <button data-view="reports" class="nav-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800/80 hover:text-white">
+        <div class="flex items-center gap-3">
+          <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+          <span>Reportes & Margen</span>
+        </div>
+      </button>
+    </nav>
+
+    <!-- User Footer -->
+    <div class="p-4 border-t border-slate-800 bg-slate-950/50">
+      <div class="flex items-center justify-between">
+        <div class="truncate mr-2">
+          <p id="user-display-name" class="text-sm font-semibold text-white truncate">Administrador</p>
+          <p id="user-display-email" class="text-xs text-slate-400 truncate">admin@vitajuice.pe</p>
+        </div>
+        <button id="btn-logout" title="Cerrar Sesión" class="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- 3. CONTENEDOR PRINCIPAL -->
+  <!-- ========================================================================= -->
+  <div class="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+    <!-- Navbar Superior -->
+    <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-sm no-print">
+      <div>
+        <h2 id="navbar-title" class="text-xl font-bold text-slate-800 tracking-tight">Panel General de Control</h2>
+        <p id="navbar-subtitle" class="text-xs text-slate-500">Métricas en tiempo real para VitaJuice by Rena</p>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <!-- Badge Conexión / Live Server (Clic para configurar Supabase) -->
+        <button id="btn-open-supabase-modal" title="Haz clic para conectar con tu base de datos Supabase" class="hidden sm:flex items-center gap-2 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-full text-xs font-medium text-emerald-800 transition-colors">
+          <i data-lucide="database" class="w-3.5 h-3.5 text-emerald-600 animate-pulse"></i>
+          <span id="db-status-text">PostgreSQL Cloud (Neon/Supabase)</span>
+        </button>
+
+        <div class="flex items-center gap-1.5 px-3 py-1 bg-slate-100 border border-slate-200 rounded-full text-xs font-semibold text-slate-700">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+          <span>ROL: ADMIN</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Contenido de las Vistas -->
+    <main class="p-6 max-w-7xl w-full mx-auto flex-1 space-y-6">
+
+      <!-- ===================================================================== -->
+      <!-- VISTA 1: DASHBOARD -->
+      <!-- ===================================================================== -->
+      <section id="view-dashboard" class="space-y-6">
+        <!-- Banner Preventivo de Alertas -->
+        <div id="dash-alert-banner" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-amber-100 rounded-xl text-amber-700">
+              <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 id="dash-alert-title" class="text-sm font-bold text-amber-900">Atención Operativa</h4>
+              <p id="dash-alert-desc" class="text-xs text-amber-700 mt-0.5">Existen alertas pendientes en el inventario o cobros.</p>
+            </div>
+          </div>
+          <button data-view="alerts" class="nav-btn px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center gap-1 shrink-0">
+            <span>Resolver Alertas</span>
+            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- 4 Tarjetas de Métricas -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Ventas Cobradas</span>
+              <div class="p-2 bg-emerald-50 rounded-xl text-emerald-600"><i data-lucide="dollar-sign" class="w-5 h-5"></i></div>
+            </div>
+            <div class="mt-4">
+              <h3 id="kpi-revenue" class="text-2xl font-black text-slate-900">S/. 0.00</h3>
+              <p id="kpi-paid-count" class="text-xs text-emerald-600 font-medium mt-1 flex items-center gap-1">
+                <i data-lucide="check-circle" class="w-3 h-3"></i> 0 pedidos confirmados
+              </p>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Margen Real Estimado</span>
+              <div class="p-2 bg-blue-50 rounded-xl text-blue-600"><i data-lucide="trending-up" class="w-5 h-5"></i></div>
+            </div>
+            <div class="mt-4">
+              <h3 id="kpi-margin-soles" class="text-2xl font-black text-slate-900">S/. 0.00</h3>
+              <p id="kpi-margin-percent" class="text-xs text-blue-600 font-semibold mt-1">0% rentabilidad bruta</p>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Pedidos Activos</span>
+              <div class="p-2 bg-purple-50 rounded-xl text-purple-600"><i data-lucide="shopping-bag" class="w-5 h-5"></i></div>
+            </div>
+            <div class="mt-4">
+              <h3 id="kpi-orders-count" class="text-2xl font-black text-slate-900">0</h3>
+              <p id="kpi-pending-count" class="text-xs text-purple-600 font-medium mt-1 flex items-center gap-1">
+                <i data-lucide="clock" class="w-3 h-3"></i> 0 pendientes de pago
+              </p>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Shots Vendidos</span>
+              <div class="p-2 bg-amber-50 rounded-xl text-amber-600"><i data-lucide="package" class="w-5 h-5"></i></div>
+            </div>
+            <div class="mt-4">
+              <h3 id="kpi-items-sold" class="text-2xl font-black text-slate-900">0</h3>
+              <p class="text-xs text-amber-700 font-medium mt-1">En lotes comerciales de VitaJuice</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ranking y Últimos Pedidos -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm lg:col-span-1">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="font-bold text-slate-900 text-sm">Shots Más Vendidos</h4>
+              <button data-view="reports" class="nav-btn text-xs text-emerald-600 hover:underline font-semibold">Ver detalle</button>
+            </div>
+            <div id="dash-top-products" class="space-y-4"></div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm lg:col-span-2 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="font-bold text-slate-900 text-sm">Últimos Pedidos Registrados</h4>
+                <button data-view="orders" class="nav-btn px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                  <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                  <span>Ir a Pedidos</span>
+                </button>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead>
+                    <tr class="border-b border-slate-100 text-slate-400 font-semibold uppercase">
+                      <th class="pb-2">N° Pedido</th>
+                      <th class="pb-2">Cliente (WhatsApp)</th>
+                      <th class="pb-2">Total</th>
+                      <th class="pb-2">Estado Pago</th>
+                      <th class="pb-2">Logística</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dash-recent-orders" class="divide-y divide-slate-100"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500 mt-4">
+              <span>Gestión centralizada de pedidos para VitaJuice</span>
+              <button data-view="orders" class="nav-btn text-emerald-600 font-semibold hover:underline flex items-center gap-1">
+                <span>Ver todos los pedidos</span>
+                <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- VISTA 2: VENTAS Y PEDIDOS -->
+      <!-- ===================================================================== -->
+      <section id="view-orders" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex gap-2 w-full sm:w-auto">
+            <div class="relative w-full sm:w-80">
+              <span class="absolute left-3 top-3 text-slate-400"><i data-lucide="search" class="w-4 h-4"></i></span>
+              <input type="text" id="orders-search" placeholder="Buscar por cliente, teléfono o N°..." class="w-full pl-9 pr-4 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <select id="orders-status-filter" class="px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none">
+              <option value="">Todos los Estados</option>
+              <option value="PENDIENTE">Pendientes</option>
+              <option value="EN_PREPARACION">En Preparación</option>
+              <option value="EN_CAMINO">En Camino</option>
+              <option value="ENTREGADO">Entregados</option>
+            </select>
+
+            <button id="btn-open-new-order" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 transition-colors shrink-0">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>Nuevo Pedido (WhatsApp)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
+                <tr>
+                  <th class="p-4">Pedido / Fecha</th>
+                  <th class="p-4">Cliente (WhatsApp)</th>
+                  <th class="p-4">Detalle de Shots</th>
+                  <th class="p-4">Importe Total</th>
+                  <th class="p-4">Estado de Pago</th>
+                  <th class="p-4">Estado Logístico</th>
+                  <th class="p-4 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- VISTA 3: INVENTARIO Y COMPRAS -->
+      <!-- ===================================================================== -->
+      <section id="view-inventory" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div>
+            <h3 class="text-sm font-bold text-slate-800">Materias Primas & Envases</h3>
+            <p class="text-xs text-slate-500">Descuento automático por cada shot de VitaJuice vendido en el sistema</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="btn-open-new-supply" class="px-3.5 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-xl transition-colors">
+              + Nuevo Insumo
+            </button>
+            <button id="btn-open-new-purchase" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition-colors">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>Registrar Compra / Entrada de Stock</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabla de Insumos -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
+                <tr>
+                  <th class="p-4">Insumo / Materia Prima</th>
+                  <th class="p-4">Stock Actual</th>
+                  <th class="p-4">Umbral Mínimo (Alerta)</th>
+                  <th class="p-4">Estado del Stock</th>
+                  <th class="p-4">Costo Ref. Unitario</th>
+                  <th class="p-4">Última Entrada</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-table-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Historial de Compras -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="history" class="w-5 h-5 text-emerald-600"></i>
+            <h4 class="text-sm font-bold text-slate-800">Historial de Lotes Comprados y Vencimientos de Insumos Perecederos</h4>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-400 font-semibold uppercase">
+                <tr>
+                  <th class="p-3">Lote</th>
+                  <th class="p-3">Fecha Compra</th>
+                  <th class="p-3">Insumo</th>
+                  <th class="p-3">Cantidad</th>
+                  <th class="p-3">Costo Total</th>
+                  <th class="p-3">Proveedor</th>
+                  <th class="p-3">Fecha Vencimiento</th>
+                </tr>
+              </thead>
+              <tbody id="purchases-table-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- VISTA 4: FICHAS TÉCNICAS (RECETAS) -->
+      <!-- ===================================================================== -->
+      <section id="view-recipes" class="hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 class="font-bold text-sm text-slate-800">Catálogo de Productos</h3>
+              <span id="recipes-catalog-count" class="text-xs text-slate-400 font-mono">0 productos</span>
+            </div>
+            <div id="recipes-product-list" class="space-y-2 overflow-y-auto max-h-[600px] pr-1"></div>
+          </div>
+
+          <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+            <div id="recipe-detail-container" class="space-y-6">
+              <!-- Contenido dinámico de la Ficha Técnica -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- VISTA 5: BANDEJA DE ALERTAS -->
+      <!-- ===================================================================== -->
+      <section id="view-alerts" class="hidden space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <span class="text-xs font-bold uppercase text-slate-500">Insumos en Stock Bajo</span>
+              <h3 id="alert-count-stock" class="text-2xl font-black text-amber-600 mt-1">0</h3>
+            </div>
+            <div class="p-3 bg-amber-50 rounded-xl text-amber-600"><i data-lucide="boxes" class="w-6 h-6"></i></div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <span class="text-xs font-bold uppercase text-slate-500">Lotes Próximos a Vencer</span>
+              <h3 id="alert-count-expiry" class="text-2xl font-black text-red-600 mt-1">0</h3>
+            </div>
+            <div class="p-3 bg-red-50 rounded-xl text-red-600"><i data-lucide="calendar" class="w-6 h-6"></i></div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <span class="text-xs font-bold uppercase text-slate-500">Pedidos Rezagados (&gt;3 días)</span>
+              <h3 id="alert-count-stale" class="text-2xl font-black text-blue-600 mt-1">0</h3>
+            </div>
+            <div class="p-3 bg-blue-50 rounded-xl text-blue-600"><i data-lucide="clock" class="w-6 h-6"></i></div>
+          </div>
+        </div>
+
+        <!-- Sección Stock Bajo -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600"></i>
+              <h4 class="text-base font-bold text-slate-900">1. Alerta de Stock Bajo (Umbral de Seguridad)</h4>
+            </div>
+            <button data-view="inventory" class="nav-btn text-xs text-emerald-600 hover:underline font-semibold flex items-center gap-1">
+              <span>Reponer en Almacén</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+          <div id="alerts-stock-container" class="space-y-3"></div>
+        </div>
+
+        <!-- Sección Vencimiento -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="calendar" class="w-5 h-5 text-red-600"></i>
+            <h4 class="text-base font-bold text-slate-900">2. Alerta de Vencimiento de Lotes Perecederos (Ventana de 7 Días)</h4>
+          </div>
+          <div id="alerts-expiry-container" class="space-y-3"></div>
+        </div>
+
+        <!-- Sección Pedidos Estancados -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="clock" class="w-5 h-5 text-blue-600"></i>
+              <h4 class="text-base font-bold text-slate-900">3. Alerta de Pedidos sin Cobrar (&gt; 3 días de antigüedad)</h4>
+            </div>
+            <button data-view="orders" class="nav-btn text-xs text-blue-600 hover:underline font-semibold flex items-center gap-1">
+              <span>Ver Pedidos</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+          <div id="alerts-stale-container" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- VISTA 6: REPORTES Y MARGEN REAL -->
+      <!-- ===================================================================== -->
+      <section id="view-reports" class="hidden space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm no-print">
+          <div>
+            <h3 class="text-sm font-bold text-slate-800">Reporte Consolidado del Sprint</h3>
+            <p class="text-xs text-slate-500">Información auditada de ventas cobradas vs insumos consumidos en producción</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="btn-print-report" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+              <span>Imprimir / Guardar en PDF</span>
+            </button>
+            <button id="btn-export-csv" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-colors">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>Descargar Datos (CSV)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-center text-slate-500 text-xs font-bold uppercase tracking-wider">
+              <span>Total Ventas Cobradas</span>
+              <i data-lucide="dollar-sign" class="w-4 h-4 text-emerald-600"></i>
+            </div>
+            <h3 id="report-revenue" class="text-3xl font-black text-slate-900 mt-2">S/. 0.00</h3>
+            <p id="report-orders-count" class="text-xs text-slate-400 mt-1">Sobre 0 pedidos confirmados</p>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-center text-amber-700 text-xs font-bold uppercase tracking-wider">
+              <span>Costo Total Insumos Usados</span>
+              <i data-lucide="package" class="w-4 h-4 text-amber-600"></i>
+            </div>
+            <h3 id="report-supply-cost" class="text-3xl font-black text-amber-900 mt-2">S/. 0.00</h3>
+            <p id="report-items-count" class="text-xs text-amber-700 mt-1">Descontado según receta de los shots vendidos</p>
+          </div>
+
+          <div class="bg-gradient-to-tr from-emerald-700 to-teal-800 text-white p-6 rounded-2xl shadow-md">
+            <div class="flex justify-between items-center text-emerald-100 text-xs font-bold uppercase tracking-wider">
+              <span>Margen de Ganancia Real</span>
+              <i data-lucide="trending-up" class="w-4 h-4 text-emerald-200"></i>
+            </div>
+            <h3 id="report-gross-margin" class="text-3xl font-black text-white mt-2">S/. 0.00</h3>
+            <p id="report-margin-percent" class="text-xs text-emerald-200 font-semibold mt-1">Rentabilidad bruta real: 0%</p>
+          </div>
+        </div>
+
+        <!-- Tabla de Rendimiento por Producto -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+          <div>
+            <h4 class="text-base font-bold text-slate-900">Desglose de Rentabilidad por Producto (Shots de VitaJuice)</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Fórmula aplicada: Margen (S/.) = Total Facturado - (Insumos consumidos x Costo de compra)</p>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
+                <tr>
+                  <th class="p-3">Ranking / Producto</th>
+                  <th class="p-3">Categoría</th>
+                  <th class="p-3">Unidades Vendidas</th>
+                  <th class="p-3">Venta Total (S/.)</th>
+                  <th class="p-3">Costo Insumos (S/.)</th>
+                  <th class="p-3">Margen Real (S/.)</th>
+                  <th class="p-3">Rentabilidad (%)</th>
+                </tr>
+              </thead>
+              <tbody id="report-products-table-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 text-white rounded-2xl p-6 shadow-sm space-y-3 no-print">
+          <h4 class="text-sm font-bold text-emerald-400 uppercase tracking-wider">Sustentación Técnica para Sprint Review (ISIL - Scrum)</h4>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            <strong>Problema resuelto:</strong> Antes de esta solución, VitaJuice gestionaba ventas por WhatsApp sin saber su rentabilidad real por lote de producción. Al integrar la <strong>Ficha Técnica (Receta)</strong> con el <strong>Inventario de Insumos</strong> y la <strong>Pasarela Culqi</strong>, cada venta confirmada deduce en tiempo real los gramos y mililitros exactos de materia prima, arrojando el margen neto real sin estimaciones manuales.
+          </p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 4. MODALES DEL SISTEMA -->
+  <!-- ========================================================================= -->
+
+  <!-- MODAL: NUEVO PEDIDO (WHATSAPP) -->
+  <div id="modal-order" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200">
+      <div class="bg-slate-900 p-5 text-white flex justify-between items-center">
+        <div>
+          <h3 class="text-lg font-bold">Registrar Nuevo Pedido</h3>
+          <p class="text-xs text-slate-400">Canal WhatsApp / Redes Sociales</p>
+        </div>
+        <button class="modal-close p-1 rounded-lg text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="form-create-order" class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre del Cliente *</label>
+            <input type="text" id="order-customer-name" required placeholder="Ej. Valeria Thorne" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">WhatsApp / Teléfono *</label>
+            <input type="text" id="order-customer-phone" required placeholder="Ej. 987654321" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Dirección de Entrega</label>
+          <input type="text" id="order-customer-address" placeholder="Ej. Av. Larco 743, Dpto 501, Miraflores" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-2">Seleccionar Shots y Bebidas de VitaJuice</label>
+          <div id="order-products-selector" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+        </div>
+
+        <!-- Items seleccionados -->
+        <div id="order-selected-items-box" class="hidden bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+          <span class="text-xs font-bold text-slate-700 block">Shots agregados al pedido:</span>
+          <div id="order-selected-items-list" class="space-y-2"></div>
+          <div class="pt-2 border-t border-slate-200 flex justify-between font-black text-sm text-slate-900">
+            <span>Total:</span>
+            <span id="order-total-display">S/. 0.00</span>
+          </div>
+        </div>
+
+        <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 space-y-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="order-mark-as-paid" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+            <span class="text-xs font-bold text-emerald-900">Confirmar pago de inmediato (Descuenta stock de insumos automáticamente)</span>
+          </label>
+          <div id="order-method-box" class="hidden pl-6">
+            <select id="order-payment-method" class="px-3 py-1.5 text-xs bg-white border border-emerald-300 rounded-lg focus:outline-none">
+              <option value="EFECTIVO">Efectivo contra entrega</option>
+              <option value="YAPE">Yape / Plin</option>
+              <option value="TRANSFERENCIA">Transferencia Bancaria</option>
+              <option value="CULQI">Culqi Pasarela</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-3">
+          <button type="button" class="modal-close px-4 py-2 border border-slate-300 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md">Crear Pedido</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: PASARELA CULQI SANDBOX -->
+  <div id="modal-culqi" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+      <div class="bg-gradient-to-r from-emerald-600 to-teal-700 p-5 text-white flex justify-between items-start">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-emerald-800 text-emerald-100">Culqi Sandbox Perú</span>
+            <span class="text-xs text-emerald-200 flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3"></i> Seguro 256-bit</span>
+          </div>
+          <h3 class="text-xl font-bold">Pasarela de Pagos</h3>
+          <p id="culqi-order-info" class="text-xs text-emerald-100">Pedido VJ-000 • Cliente</p>
+        </div>
+        <button class="modal-close p-1 rounded-lg text-emerald-200 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+        <span class="text-sm font-medium text-slate-600">Total a pagar:</span>
+        <span id="culqi-amount-display" class="text-2xl font-black text-slate-900">S/. 0.00</span>
+      </div>
+
+      <div id="culqi-success-view" class="hidden p-8 text-center space-y-4">
+        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+          <i data-lucide="check-circle-2" class="w-10 h-10"></i>
+        </div>
+        <h4 class="text-lg font-bold text-slate-800">¡Pago Confirmado por Culqi!</h4>
+        <p class="text-xs text-slate-500">ID Transacción: <span id="culqi-tx-id" class="font-mono text-emerald-700 font-semibold">chr_test_...</span></p>
+        <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 text-left">
+          ✨ <strong>Acción del sistema:</strong> El pedido pasó a estado <strong>PAGADO</strong> y el stock de insumos de su receta fue descontado automáticamente de almacén.
+        </div>
+      </div>
+
+      <form id="form-culqi-payment" class="p-6 space-y-5">
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" id="culqi-tab-card" class="flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-medium border-emerald-600 bg-emerald-50 text-emerald-800 font-semibold shadow-sm">
+            <i data-lucide="credit-card" class="w-4 h-4 text-emerald-600"></i>
+            Tarjeta Débito/Crédito
+          </button>
+          <button type="button" id="culqi-tab-yape" class="flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-medium border-slate-200 bg-white text-slate-600 hover:bg-slate-50">
+            <i data-lucide="smartphone" class="w-4 h-4 text-purple-600"></i>
+            Yape con Código
+          </button>
+        </div>
+
+        <div id="culqi-card-fields" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Correo para comprobante</label>
+            <input type="email" id="culqi-email" required value="cliente@gmail.com" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Número de tarjeta (Test)</label>
+            <input type="text" id="culqi-card" required value="4111 1111 1111 1111" class="w-full px-3 py-2 text-sm font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Expiración</label>
+              <input type="text" id="culqi-exp" required value="12/28" class="w-full px-3 py-2 text-sm font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">CVV</label>
+              <input type="password" id="culqi-cvv" required value="123" maxlength="4" class="w-full px-3 py-2 text-sm font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+            </div>
+          </div>
+        </div>
+
+        <div id="culqi-yape-fields" class="hidden space-y-3">
+          <div class="p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900 space-y-1">
+            <p className="font-semibold">Paga con Yape (Pruebas Culqi):</p>
+            <p>Abre tu App Yape → Código de Aprobación → ingresa los 6 dígitos generados.</p>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Código de aprobación Yape (6 dígitos)</label>
+            <input type="text" id="culqi-yape-otp" value="123456" maxlength="6" class="w-full px-3 py-2 text-center text-lg tracking-widest font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <button type="submit" id="btn-submit-culqi" class="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+          <i data-lucide="shield" class="w-4 h-4"></i>
+          <span id="btn-culqi-label">Pagar Pedido con Culqi</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTRAR COMPRA / ENTRADA DE INSUMO -->
+  <div id="modal-purchase" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+      <div class="bg-emerald-700 p-5 text-white flex justify-between items-center">
+        <h3 class="text-base font-bold">Registrar Entrada de Insumos</h3>
+        <button class="modal-close text-emerald-200 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="form-purchase" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Seleccionar Insumo *</label>
+          <select id="purchase-supply-id" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none"></select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Cantidad Comprada *</label>
+            <input type="number" step="any" id="purchase-qty" required placeholder="Ej. 5000" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Costo Unitario (S/.) *</label>
+            <input type="number" step="any" id="purchase-cost" required placeholder="Ej. 0.015" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Fecha de Vencimiento (Perecederos)</label>
+          <input type="date" id="purchase-expiration" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Proveedor</label>
+            <input type="text" id="purchase-supplier" placeholder="Ej. Mercado Mayorista" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">N° de Lote</label>
+            <input type="text" id="purchase-batch" placeholder="Ej. LOTE-JEN-2026" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="modal-close px-4 py-2 border text-slate-600 rounded-xl text-xs font-bold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold">Guardar Entrada</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVO INSUMO -->
+  <div id="modal-supply" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+      <div class="bg-slate-900 p-5 text-white flex justify-between items-center">
+        <h3 class="text-base font-bold">Nuevo Insumo o Envase</h3>
+        <button class="modal-close text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="form-supply" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre del Insumo *</label>
+          <input type="text" id="supply-name" required placeholder="Ej. Menta fresca" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Unidad de Medida *</label>
+            <select id="supply-unit" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none">
+              <option value="g">Gramos (g)</option>
+              <option value="ml">Mililitros (ml)</option>
+              <option value="unidad">Unidad (botellas/tapas)</option>
+              <option value="kg">Kilos (kg)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Umbral Alerta Mínima *</label>
+            <input type="number" id="supply-min-alert" required value="1000" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="modal-close px-4 py-2 border text-slate-600 rounded-xl text-xs font-bold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold">Crear Insumo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: AGREGAR INGREDIENTE A RECETA -->
+  <div id="modal-recipe-item" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+      <div class="bg-slate-900 p-5 text-white flex justify-between items-center">
+        <h3 class="text-base font-bold">Agregar Ingrediente a la Ficha Técnica</h3>
+        <button class="modal-close text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="form-recipe-item" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Materia Prima / Insumo *</label>
+          <select id="recipe-supply-id" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:outline-none"></select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Cantidad consumida por 1 unidad de shot *</label>
+          <input type="number" step="any" id="recipe-quantity" required placeholder="Ej. 15 (para 15g o 15ml)" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="modal-close px-4 py-2 border text-slate-600 rounded-xl text-xs font-bold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold">Guardar en Receta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CONECTAR CON SUPABASE -->
+  <div id="modal-supabase" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+      <div class="bg-gradient-to-r from-emerald-600 to-teal-700 p-5 text-white flex justify-between items-center">
+        <div>
+          <h3 class="text-base font-bold">Conectar con tu Base de Datos Supabase</h3>
+          <p class="text-xs text-emerald-100">Para que los datos de tu grupo se guarden en la nube</p>
+        </div>
+        <button class="modal-close text-emerald-200 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="form-supabase-config" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Supabase Project URL *</label>
+          <input type="text" id="input-supabase-url" required placeholder="https://xyzcompany.supabase.co" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+          <p class="text-[11px] text-slate-400 mt-1">Encuéntralo en Supabase → Project Settings → API → Project URL</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Supabase Anon Public Key *</label>
+          <input type="password" id="input-supabase-key" required placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." class="w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+          <p class="text-[11px] text-slate-400 mt-1">Encuéntralo en Supabase → Project Settings → API → Project API Keys (anon public)</p>
+        </div>
+
+        <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 space-y-1">
+          <p class="font-bold">✨ Conexión en Tiempo Real:</p>
+          <p>Al guardar, todos los pedidos, insumos y pagos que tu equipo registre en la web se sincronizarán directamente en tu panel de Supabase.</p>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="modal-close px-4 py-2 border text-slate-600 rounded-xl text-xs font-bold">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md">Guardar y Conectar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Script principal Vanilla JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>
