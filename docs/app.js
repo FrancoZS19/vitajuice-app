@@ -118,8 +118,8 @@ const mockData = {
 // ============================================================================
 // 2. CONEXIÓN SUPABASE (NUBE) Y COMUNICACIÓN API
 // ============================================================================
-let SUPABASE_URL = localStorage.getItem('vitajuice_sb_url') || '';
-let SUPABASE_KEY = localStorage.getItem('vitajuice_sb_key') || '';
+let SUPABASE_URL = localStorage.getItem('vitajuice_sb_url') || 'https://fdmcglwfkzvsqefxrqrb.supabase.co';
+let SUPABASE_KEY = localStorage.getItem('vitajuice_sb_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkbWNnbHdma3p2c3FlZnhycXJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MTQ5NTIsImV4cCI6MjEwNDQ5MDk1Mn0.za2dmzaQJBX2rHqOi2gNpUEiSajdJBlrZulRBVsK9NM';
 let supabaseClient = null;
 
 function getSupabase() {
