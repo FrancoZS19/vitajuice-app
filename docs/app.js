@@ -1119,6 +1119,17 @@ function exportCSV() {
 // ============================================================================
 // 7. EVENT LISTENERS Y INICIALIZACIÓN
 // ============================================================================
+// Menú lateral responsive (off-canvas en móvil/tablet, fijo en desktop desde md:)
+function openSidebar() {
+  document.getElementById('sidebar')?.classList.remove('-translate-x-full');
+  document.getElementById('sidebar-overlay')?.classList.remove('hidden');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar')?.classList.add('-translate-x-full');
+  document.getElementById('sidebar-overlay')?.classList.add('hidden');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initSession();
 
@@ -1127,8 +1138,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const navBtn = e.target.closest('.nav-btn');
     if (navBtn && navBtn.dataset.view) {
       showView(navBtn.dataset.view);
+      closeSidebar();
     }
   });
+
+  // Apertura/cierre del menú lateral en móvil
+  document.getElementById('btn-sidebar-open')?.addEventListener('click', openSidebar);
+  document.getElementById('btn-sidebar-close')?.addEventListener('click', closeSidebar);
+  document.getElementById('sidebar-overlay')?.addEventListener('click', closeSidebar);
 
   // Cerrar modales con botones .modal-close
   document.querySelectorAll('.modal-close').forEach((btn) => {
